@@ -525,8 +525,8 @@ extension RouteController: CLLocationManagerDelegate {
                 abs(self.routeProgress.route.expectedTravelTime - routeToCheck.expectedTravelTime) > 30
             }
             
-            print("FlitsNav", "newRouteMatchingAtLeast90Percent", newRouteMatchingAtLeast90Percent)
-            print("FlitsNav", "isExpectedTravelTimeChangedSignificantly", isExpectedTravelTimeChangedSignificantly, self.routeProgress.route.expectedTravelTime, routeToCheck.expectedTravelTime, abs(self.routeProgress.route.expectedTravelTime - routeToCheck.expectedTravelTime))
+//            print("FlitsNav", "newRouteMatchingAtLeast90Percent", newRouteMatchingAtLeast90Percent)
+//            print("FlitsNav", "isExpectedTravelTimeChangedSignificantly", isExpectedTravelTimeChangedSignificantly, self.routeProgress.route.expectedTravelTime, routeToCheck.expectedTravelTime, abs(self.routeProgress.route.expectedTravelTime - routeToCheck.expectedTravelTime))
             
             if isRerouteAllowed && routeIsFaster {
                 print("FlitsNav", "routeIsFaster && isRerouteAllowed")
@@ -536,8 +536,8 @@ extension RouteController: CLLocationManagerDelegate {
                 self.delegate?.routeController?(self, didRerouteAlong: routeToCheck, reroutingBecauseOfFasterRoute: true, isExpectedTravelTimeUpdate: false)
                 self.didFindFasterRoute = false // Wat doet dit?
             } else if isExpectedTravelTimeChangedSignificantly, let route = newRouteMatchingAtLeast90Percent {
-                self.routeProgress = RouteProgress(route: routeToCheck, legIndex: 0, spokenInstructionIndex: self.routeProgress.currentLegProgress.currentStepProgress.spokenInstructionIndex)
-                self.delegate?.routeController?(self, didRerouteAlong: routeToCheck, reroutingBecauseOfFasterRoute: false, isExpectedTravelTimeUpdate: true)
+                self.routeProgress = RouteProgress(route: route, legIndex: 0, spokenInstructionIndex: self.routeProgress.currentLegProgress.currentStepProgress.spokenInstructionIndex)
+                self.delegate?.routeController?(self, didRerouteAlong: route, reroutingBecauseOfFasterRoute: false, isExpectedTravelTimeUpdate: true)
             }
         }
     }
