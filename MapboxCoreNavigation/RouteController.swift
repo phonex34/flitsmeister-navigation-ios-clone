@@ -481,7 +481,11 @@ extension RouteController: CLLocationManagerDelegate {
                 
                 routes = routes.map {
                     let copy = $0
-                    copy.expectedTravelTime = copy.expectedTravelTime + (Self.isMegaFileActive ? 60 * 10 : 0)
+                    print("pre expectedTravelTime", copy.expectedTravelTime)
+                    let addedTime = Self.isMegaFileActive ? 1000 : 0
+                    print("added time", addedTime)
+                    copy.expectedTravelTime = copy.expectedTravelTime + addedTime
+                    print("post expectedTravelTime", copy.expectedTravelTime)
                     return copy
                 }
                 
@@ -505,32 +509,32 @@ extension RouteController: CLLocationManagerDelegate {
                 
                 print("FlitsNav", "bestMatch", bestMatch)
                 
-                if bestMatch.matchFactor >= 0.9 {
+                if bestMatch.matchFactor >= RouteMatchFactor {
                     return bestMatch.route
                 }
                 return nil
             }()
             
-            
+            let routeToCheck = newRouteMatchingAtLeast90Percent ?? route
             // Is de eta wel veranderd?
             // Wat is het probleem met nieuwe oute activeren.
             var isExpectedTravelTimeChangedSignificantly: Bool {
-                abs(self.routeProgress.route.expectedTravelTime - route.expectedTravelTime) > 30
+                abs(self.routeProgress.route.expectedTravelTime - routeToCheck.expectedTravelTime) > 30
             }
             
             print("FlitsNav", "newRouteMatchingAtLeast90Percent", newRouteMatchingAtLeast90Percent)
-            print("FlitsNav", "isExpectedTravelTimeChangedSignificantly", isExpectedTravelTimeChangedSignificantly, self.routeProgress.route.expectedTravelTime, route.expectedTravelTime, abs(self.routeProgress.route.expectedTravelTime - route.expectedTravelTime))
+            print("FlitsNav", "isExpectedTravelTimeChangedSignificantly", isExpectedTravelTimeChangedSignificantly, self.routeProgress.route.expectedTravelTime, routeToCheck.expectedTravelTime, abs(self.routeProgress.route.expectedTravelTime - routeToCheck.expectedTravelTime))
             
             if isRerouteAllowed && routeIsFaster {
                 print("FlitsNav", "routeIsFaster && isRerouteAllowed")
                 self.didFindFasterRoute = true
                 // If the upcoming maneuver in the new route is the same as the current upcoming maneuver, don't announce it
-                self.routeProgress = RouteProgress(route: route, legIndex: 0, spokenInstructionIndex: self.routeProgress.currentLegProgress.currentStepProgress.spokenInstructionIndex)
-                self.delegate?.routeController?(self, didRerouteAlong: route, reroutingBecauseOfFasterRoute: true, isExpectedTravelTimeUpdate: false)
+                self.routeProgress = RouteProgress(route: routeToCheck, legIndex: 0, spokenInstructionIndex: self.routeProgress.currentLegProgress.currentStepProgress.spokenInstructionIndex)
+                self.delegate?.routeController?(self, didRerouteAlong: routeToCheck, reroutingBecauseOfFasterRoute: true, isExpectedTravelTimeUpdate: false)
                 self.didFindFasterRoute = false // Wat doet dit?
             } else if isExpectedTravelTimeChangedSignificantly, let route = newRouteMatchingAtLeast90Percent {
-                self.routeProgress = RouteProgress(route: route, legIndex: 0, spokenInstructionIndex: self.routeProgress.currentLegProgress.currentStepProgress.spokenInstructionIndex)
-                self.delegate?.routeController?(self, didRerouteAlong: route, reroutingBecauseOfFasterRoute: false, isExpectedTravelTimeUpdate: true)
+                self.routeProgress = RouteProgress(route: routeToCheck, legIndex: 0, spokenInstructionIndex: self.routeProgress.currentLegProgress.currentStepProgress.spokenInstructionIndex)
+                self.delegate?.routeController?(self, didRerouteAlong: routeToCheck, reroutingBecauseOfFasterRoute: false, isExpectedTravelTimeUpdate: true)
             }
         }
     }
