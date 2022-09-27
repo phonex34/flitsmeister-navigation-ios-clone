@@ -21,7 +21,7 @@ public var RouteControllerMaximumAllowedDegreeOffsetForTurnCompletion: Double = 
  */
 public var RouteControllerMediumAlertInterval: TimeInterval = 70
 
-public var RouteMatchFactor = 0.9
+//public var RouteMatchFactor = 0.9
 
 /**
  Number of seconds left on step when a `AlertLevel.high` alert is emitted.

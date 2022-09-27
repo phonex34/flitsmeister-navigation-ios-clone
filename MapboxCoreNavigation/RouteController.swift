@@ -509,13 +509,16 @@ extension RouteController: CLLocationManagerDelegate {
                 
                 print("FlitsNav", "bestMatch", bestMatch)
                 
-                if bestMatch.matchFactor >= RouteMatchFactor {
+                if bestMatch.matchFactor >= 0.9 {
                     return bestMatch.route
                 }
                 return nil
             }()
             
-            let routeToCheck = newRouteMatchingAtLeast90Percent ?? route
+            var routeToCheck = route
+            if let newRoute = newRouteMatchingAtLeast90Percent {
+                routeToCheck = newRoute
+            }
             // Is de eta wel veranderd?
             // Wat is het probleem met nieuwe oute activeren.
             var isExpectedTravelTimeChangedSignificantly: Bool {
