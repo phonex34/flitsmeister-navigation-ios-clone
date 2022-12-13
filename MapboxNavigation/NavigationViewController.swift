@@ -181,6 +181,18 @@ public protocol NavigationViewControllerDelegate: VisualInstructionDelegate {
      */
     @objc(navigationViewController:roadNameAtLocation:)
     optional func navigationViewController(_ navigationViewController: NavigationViewController, roadNameAt location: CLLocation) -> String?
+    
+    /**
+     Called to allow the delegate to customize the contents of the road name label that is displayed towards the bottom of the map view.
+     
+     This method is called on each location update. By default, the label displays the name of the road the user is currently traveling on.
+     
+     - parameter navigationViewController: The navigation view controller that will display the road name.
+     - parameter location: The user’s current location.
+     - returns: The road name to display in the label, or nil to hide the label.
+     */
+    @objc(mapViewFromNavigation:finishloading:)
+    optional func mapView(_ mapViewFromNavigation: MGLMapView, didLoadCompleteStyle style: MGLStyle) -> Void
 }
 
 /**
@@ -381,6 +393,7 @@ open class NavigationViewController: UIViewController {
         
         let mapViewController = RouteMapViewController(routeController: self.routeController, delegate: self)
         self.mapViewController = mapViewController
+        self.mapView?.delegate = self
         mapViewController.destination = route.legs.last?.destination
         mapViewController.willMove(toParent: self)
         addChild(mapViewController)
@@ -434,6 +447,19 @@ open class NavigationViewController: UIViewController {
         }
         
         routeController.suspendLocationUpdates()
+    }
+    
+    public func fit(to route: Route, facing direction:CLLocationDirection = 0, padding: UIEdgeInsets = NavigationMapView.defaultPadding, animated: Bool = false) {
+        mapView?.fit(to: route, facing: direction, padding: padding, animated: animated)
+    }
+    
+    public func finishRoute(duration: TimeInterval = 1.0, completion: ((Bool) -> Void)? = nil) {
+        mapViewController?.finishRoute(duration: duration, completion:  completion)
+//        mapViewController?.showEndOfRoute(duration: duration, completion:  completion)
+    }
+    
+    public func handleOverview() {
+        mapViewController?.handleOverview()
     }
     
     // MARK: Route controller notifications
@@ -625,8 +651,18 @@ extension NavigationViewController: RouteControllerDelegate {
         delegate?.navigationViewController?(self, willRerouteFrom: location)
     }
     
+    //Mark: -- dont know not working
     @objc public func routeController(_ routeController: RouteController, didRerouteAlong route: Route) {
         mapViewController?.notifyDidReroute(route: route)
+        mapViewController?.mapView.showRoutes([route])
+        delegate?.navigationViewController?(self, didRerouteAlong: route)
+    }
+    
+    @objc public func routeController(_ routeController: RouteController, allRouteSearch routes: [Route]?, didRerouteAlong route: Route, reason: RouteController.RerouteReason) {
+        mapViewController?.notifyDidReroute(route: route)
+        if let routes1 = routes {
+            mapViewController?.mapView.showRoutes(routes1)
+        }
         delegate?.navigationViewController?(self, didRerouteAlong: route)
     }
     
@@ -670,12 +706,12 @@ extension NavigationViewController: RouteControllerDelegate {
 extension NavigationViewController: TunnelIntersectionManagerDelegate {
     public func tunnelIntersectionManager(_ manager: TunnelIntersectionManager, willEnableAnimationAt location: CLLocation) {
         routeController.tunnelIntersectionManager(manager, willEnableAnimationAt: location)
-        styleManager.applyStyle(type: .night)
+//        styleManager.applyStyle(type: .night)
     }
     
     public func tunnelIntersectionManager(_ manager: TunnelIntersectionManager, willDisableAnimationAt location: CLLocation) {
         routeController.tunnelIntersectionManager(manager, willDisableAnimationAt: location)
-        styleManager.timeOfDayChanged()
+//        styleManager.timeOfDayChanged()
     }
 }
 
@@ -704,5 +740,11 @@ extension NavigationViewController: StyleManagerDelegate {
     
     public func styleManagerDidRefreshAppearance(_ styleManager: StyleManager) {
         mapView?.reloadStyle(self)
+    }
+}
+
+extension NavigationViewController: MGLMapViewDelegate {
+    public func mapView(_ mapView: MGLMapView, didFinishLoading style: MGLStyle) {
+        self.delegate?.mapView?(mapView, didLoadCompleteStyle: style)
     }
 }

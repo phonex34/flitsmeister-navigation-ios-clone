@@ -55,6 +55,20 @@ public protocol RouteControllerDelegate: AnyObject {
     @objc(routeController:didRerouteAlongRoute:reason:)
     optional func routeController(_ routeController: RouteController, didRerouteAlong route: Route, reason: RouteController.RerouteReason)
     
+    
+    /**
+     Called immediately after the route controller receives a new route.
+     
+     This method is called after `routeController(_:willRerouteFrom:)` and simultaneously with the `RouteControllerDidReroute` notification being posted.
+     
+     - parameter routeController: The route controller that has calculated a new route.
+     - parameter routes: allroutessearch.
+     - parameter route: The new route.
+     - parameter reason: Describes the reason of the reroute. Could be due to a faster route / updating ETA or when the user diverted from the suggested route
+     */
+    @objc(routeController:allRouteSearch:didRerouteAlongRoute:reason:)
+    optional func routeController(_ routeController: RouteController, allRouteSearch routes: [Route]? , didRerouteAlong route: Route, reason: RouteController.RerouteReason)
+    
     /**
      Called when the route controller fails to receive a new route.
      
