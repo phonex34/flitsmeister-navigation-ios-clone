@@ -185,8 +185,7 @@ class ViewController: UIViewController, MGLMapViewDelegate {
         let userWaypoint = Waypoint(location: mapView.userLocation!.location!, heading: mapView.userLocation?.heading, name: "User location")
         waypoints.insert(userWaypoint, at: 0)
 
-        let options = NavigationRouteOptions(waypoints: waypoints)
-
+        let options = RouteOptionsV1(waypoints: waypoints)
         requestRoute(with: options, success: defaultSuccess, failure: defaultFailure)
     }
 
@@ -205,8 +204,7 @@ class ViewController: UIViewController, MGLMapViewDelegate {
 
     func startBasicNavigation() {
         guard let route = routes?.first else { return }
-
-        let navigationViewController = NavigationViewController(for: route, locationManager: navigationLocationManager())
+        let navigationViewController = NavigationViewController(for: route,styles: [CustomDayStyle()], locationManager: navigationLocationManager())
         navigationViewController.delegate = self
         
         presentAndRemoveMapview(navigationViewController)

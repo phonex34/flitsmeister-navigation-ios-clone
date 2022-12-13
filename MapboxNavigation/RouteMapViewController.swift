@@ -86,7 +86,7 @@ class RouteMapViewController: UIViewController {
             } else {
                 navigationView.overviewButton.isHidden = false
                 navigationView.resumeButton.isHidden = true
-                mapView.logoView.isHidden = false
+                mapView.logoView.isHidden = true
             }
         }
     }
@@ -227,6 +227,14 @@ class RouteMapViewController: UIViewController {
     }
 
     @objc func toggleOverview(_ sender: Any) {
+        mapView.enableFrameByFrameCourseViewTracking(for: 3)
+        if let coordinates = routeController.routeProgress.route.coordinates, let userLocation = routeController.locationManager.location?.coordinate {
+            mapView.setOverheadCameraView(from: userLocation, along: coordinates, for: overheadInsets)
+        }
+        isInOverviewMode = true
+    }
+    
+    @objc public func handleOverview() {
         mapView.enableFrameByFrameCourseViewTracking(for: 3)
         if let coordinates = routeController.routeProgress.route.coordinates, let userLocation = routeController.locationManager.location?.coordinate {
             mapView.setOverheadCameraView(from: userLocation, along: coordinates, for: overheadInsets)
@@ -500,6 +508,27 @@ class RouteMapViewController: UIViewController {
         UIView.animate(withDuration: duration, delay: 0.0, options: [.curveLinear], animations: animate, completion: complete)
     }
 
+    func finishRoute(duration: TimeInterval = 1.0, completion: ((Bool) -> Void)? = nil) {
+        view.layoutIfNeeded() //flush layout queue
+        NSLayoutConstraint.deactivate(navigationView.bannerShowConstraints)
+        NSLayoutConstraint.activate(navigationView.bannerHideConstraints)
+        navigationView.bottomBannerView.isHidden = true
+        navigationView.bottomBannerContentView.isHidden = true
+        
+        let animate = {
+            self.view.layoutIfNeeded()
+            self.navigationView.floatingStackView.alpha = 0.0
+        }
+        
+        let noAnimation = { animate(); completion?(true) }
+        
+        guard duration > 0.0 else { return noAnimation() }
+        
+        navigationView.mapView.tracksUserCourse = false
+        UIView.animate(withDuration: duration, delay: 0.0, options: [.curveLinear], animations: animate, completion: completion)
+    }
+    
+    
     fileprivate func populateName(for waypoint: Waypoint, populated: @escaping (Waypoint) -> Void) {
         guard waypoint.name == nil else { return populated(waypoint) }
         CLGeocoder().reverseGeocodeLocation(waypoint.location) { (places, error) in
@@ -558,7 +587,7 @@ extension RouteMapViewController: NavigationViewDelegate {
     // MARK: NavigationMapViewCourseTrackingDelegate
     func navigationMapViewDidStartTrackingCourse(_ mapView: NavigationMapView) {
         navigationView.resumeButton.isHidden = true
-        mapView.logoView.isHidden = false
+        mapView.logoView.isHidden = true
     }
 
     func navigationMapViewDidStopTrackingCourse(_ mapView: NavigationMapView) {
@@ -695,11 +724,11 @@ extension RouteMapViewController: NavigationViewDelegate {
         }
 
         // Add Mapbox Streets if the map does not already have it
-        if streetsSources.isEmpty {
-            let source = MGLVectorTileSource(identifier: "mapboxStreetsv7", configurationURL: URL(string: "mapbox://mapbox.mapbox-streets-v7")!)
-            style.addSource(source)
-            streetsSources.append(source)
-        }
+//        if streetsSources.isEmpty {
+//            let source = MGLVectorTileSource(identifier: "mapboxStreetsv7", configurationURL: URL(string: "mapbox://mapbox.mapbox-streets-v7")!)
+//            style.addSource(source)
+//            streetsSources.append(source)
+//        }
 
         if let mapboxSteetsSource = streetsSources.first, style.layer(withIdentifier: roadLabelLayerIdentifier) == nil {
             let streetLabelLayer = MGLLineStyleLayer(identifier: roadLabelLayerIdentifier, source: mapboxSteetsSource)

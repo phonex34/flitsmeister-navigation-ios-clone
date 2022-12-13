@@ -630,7 +630,7 @@ extension RouteController: CLLocationManagerDelegate {
 
         self.lastRerouteLocation = location
 
-        getDirections(from: location, along: progress) { [weak self] (route, _, error) in
+        getDirections(from: location, along: progress) { [weak self] (route, routes, error) in
             guard let strongSelf = self else {
                 return
             }
@@ -647,7 +647,7 @@ extension RouteController: CLLocationManagerDelegate {
 
             strongSelf.routeProgress = RouteProgress(route: route, legIndex: 0)
             strongSelf.routeProgress.currentLegProgress.stepIndex = 0
-            strongSelf.delegate?.routeController?(strongSelf, didRerouteAlong: route, reason: .divertedFromRoute)
+            strongSelf.delegate?.routeController?(strongSelf, allRouteSearch: routes, didRerouteAlong: route, reason: .divertedFromRoute)
         }
     }
 

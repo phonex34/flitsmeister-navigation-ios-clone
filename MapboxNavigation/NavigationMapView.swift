@@ -70,6 +70,9 @@ open class NavigationMapView: MGLMapView, UIGestureRecognizerDelegate {
     let instructionSource = "instructionSource"
     let instructionLabel = "instructionLabel"
     let instructionCircle = "instructionCircle"
+    let trafficIdentifier = "simple-tiles"
+    let bounderCountryIdentifier = "border_country"
+    
     
     @objc dynamic public var trafficUnknownColor: UIColor = .trafficUnknown
     @objc dynamic public var trafficLowColor: UIColor = .trafficLow
@@ -334,7 +337,7 @@ open class NavigationMapView: MGLMapView, UIGestureRecognizerDelegate {
 
     @objc public func updateCourseTracking(location: CLLocation?, camera: MGLMapCamera? = nil, animated: Bool = false) {
         // While animating to overhead mode, don't animate the puck.
-        let duration: TimeInterval = animated && !isAnimatingToOverheadMode ? 1 : 0
+        let duration: TimeInterval = animated && !isAnimatingToOverheadMode ? 0.005 : 0
         animatesUserLocation = animated
         userLocationForCourseTracking = location
         guard let location = location, CLLocationCoordinate2DIsValid(location.coordinate) else {
@@ -370,18 +373,27 @@ open class NavigationMapView: MGLMapView, UIGestureRecognizerDelegate {
     /**
      Fired when NavigationMapView detects a tap not handled elsewhere by other gesture recognizers.
      */
+    //old function correct code
+//    @objc func didRecieveTap(sender: UITapGestureRecognizer) {
+//        guard let routes = routes, let tapPoint = sender.point else { return }
+//
+//        let waypointTest = waypoints(on: routes, closeTo: tapPoint) //are there waypoints near the tapped location?
+//        if let selected = waypointTest?.first { //test passes
+//            navigationMapDelegate?.navigationMapView?(self, didSelect: selected)
+//            return
+//        } else if let routes = self.routes(closeTo: tapPoint) {
+//            guard let selectedRoute = routes.first else { return }
+//            navigationMapDelegate?.navigationMapView?(self, didSelect: selectedRoute)
+//        }
+//
+//    }
+    
     @objc func didRecieveTap(sender: UITapGestureRecognizer) {
-        guard let routes = routes, let tapPoint = sender.point else { return }
-        
-        let waypointTest = waypoints(on: routes, closeTo: tapPoint) //are there waypoints near the tapped location?
-        if let selected = waypointTest?.first { //test passes
-            navigationMapDelegate?.navigationMapView?(self, didSelect: selected)
-            return
-        } else if let routes = self.routes(closeTo: tapPoint) {
-            guard let selectedRoute = routes.first else { return }
+        if let tapPoint = sender.point, let routes = self.routes(closeTo: tapPoint), let selectedRoute = routes.first {
             navigationMapDelegate?.navigationMapView?(self, didSelect: selectedRoute)
+        } else {
+            navigationMapDelegate?.navigationMapView?(self, didTap: sender)
         }
-        
     }
     
     @objc func updateCourseView(_ sender: UIGestureRecognizer) {
@@ -444,7 +456,7 @@ open class NavigationMapView: MGLMapView, UIGestureRecognizerDelegate {
         let line = MGLPolyline(coordinates: coords, count: UInt(coords.count))
         let camera = cameraThatFitsShape(line, direction: direction, edgePadding: padding)
         
-        setCamera(camera, animated: false)
+        setCamera(camera, animated: animated)
     }
     
     
@@ -460,7 +472,7 @@ open class NavigationMapView: MGLMapView, UIGestureRecognizerDelegate {
         let mainPolylineSimplified = navigationMapDelegate?.navigationMapView?(self, simplifiedShapeFor: mainRoute) ?? shape(forCasingOf: mainRoute, legIndex: legIndex)
         
         if let source = style.source(withIdentifier: sourceIdentifier) as? MGLShapeSource,
-            let sourceSimplified = style.source(withIdentifier: sourceCasingIdentifier) as? MGLShapeSource {
+           let sourceSimplified = style.source(withIdentifier: sourceCasingIdentifier) as? MGLShapeSource {
             source.shape = polylines
             sourceSimplified.shape = mainPolylineSimplified
         } else {
@@ -471,15 +483,23 @@ open class NavigationMapView: MGLMapView, UIGestureRecognizerDelegate {
             
             let line = navigationMapDelegate?.navigationMapView?(self, routeStyleLayerWithIdentifier: routeLayerIdentifier, source: lineSource) ?? routeStyleLayer(identifier: routeLayerIdentifier, source: lineSource)
             let lineCasing = navigationMapDelegate?.navigationMapView?(self, routeCasingStyleLayerWithIdentifier: routeLayerCasingIdentifier, source: lineCasingSource) ?? routeCasingStyleLayer(identifier: routeLayerCasingIdentifier, source: lineSource)
-            
-            for layer in style.layers.reversed() {
-                if !(layer is MGLSymbolStyleLayer) &&
-                    layer.identifier != arrowLayerIdentifier && layer.identifier != arrowSymbolLayerIdentifier && layer.identifier != arrowCasingSymbolLayerIdentifier && layer.identifier != arrowLayerStrokeIdentifier && layer.identifier != waypointCircleIdentifier {
-                    style.insertLayer(line, below: layer)
-                    style.insertLayer(lineCasing, below: line)
-                    break
-                }
+            if let indexOfSimpleTile = style.layers.reversed().firstIndex(where: {$0.identifier == trafficIdentifier}) {
+                let index = indexOfSimpleTile.base > 0 ? indexOfSimpleTile.base - 1 : 0
+                style.insertLayer(line, at: UInt(index))
+                style.insertLayer(lineCasing, below: line)
+            } else if let indexBoundry = style.layers.reversed().firstIndex(where: {$0.identifier == bounderCountryIdentifier}) {
+                let index = indexBoundry.base > 0 ? indexBoundry.base - 1 : 0
+                style.insertLayer(line, at: UInt(index))
+                style.insertLayer(lineCasing, below: line)
             }
+            //            for layer in style.layers.reversed() {
+            //                if !(layer is MGLSymbolStyleLayer) && !(layer is MGLFillStyleLayer) &&
+            //                    layer.identifier != arrowLayerIdentifier && layer.identifier != arrowSymbolLayerIdentifier && layer.identifier != arrowCasingSymbolLayerIdentifier && layer.identifier != arrowLayerStrokeIdentifier && layer.identifier != waypointCircleIdentifier && layer.identifier != trafficIdentifier {
+            //                    style.insertLayer(line, below: layer)
+            //                    style.insertLayer(lineCasing, below: line)
+            //                    break
+            //                }
+            //            }
         }
     }
     
@@ -1223,6 +1243,15 @@ public protocol NavigationMapViewDelegate: AnyObject {
     */
     @objc(navigationMapViewUserAnchorPoint:)
     optional func navigationMapViewUserAnchorPoint(_ mapView: NavigationMapView) -> CGPoint
+    
+    /**
+     Tells the receiver that a point was tapped.
+     - parameter mapView: The NavigationMapView.
+     - parameter point: The point  that was tapped.
+     */
+    @objc(navigationMapView:point:)
+    optional func navigationMapView(_ mapView: NavigationMapView, didTap point: UITapGestureRecognizer)
+    
 }
 
 // MARK: NavigationMapViewCourseTrackingDelegate
